@@ -1,179 +1,316 @@
-// Basic SPA-like navigation between sections
-document.addEventListener('DOMContentLoaded', () => {
-  const links = document.querySelectorAll('.menu a, .top-actions a, .topbar a, .topbar .brand, .topbar .hamburger');
-  const sections = document.querySelectorAll('.page');
-  const menuToggle = document.getElementById('menuToggle');
-  const sidebar = document.getElementById('sidebar');
-  const contrastToggle = document.getElementById('contrastToggle');
+// =============================
+// PRIME GORILA - SISTEMA DE CHAMADOS
+// Backend: ASP.NET Core + SQL Server
+// Frontend: HTML, CSS, JS puro
+// =============================
 
-  // Helper: show section by hash or id
+document.addEventListener('DOMContentLoaded', () => {
+  const links = document.querySelectorAll('.menu a, .top-actions a');
+  const sections = document.querySelectorAll('.page');
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  const contrastToggle = document.getElementById('contrastToggle');
+  const tabelaChamados = document.querySelector('#tabelaChamados tbody');
+  const userWelcome = document.getElementById('userWelcome');
+  const API_URL = "http://localhost:5000/api"; // endereço da sua API ASP.NET
+
+  // =====================
+  // FUNÇÕES GERAIS
+  // =====================
   function showSection(hash) {
     sections.forEach(s => s.hidden = true);
     let target = hash ? document.querySelector(hash) : document.querySelector('#home');
     if (!target) target = document.querySelector('#home');
     target.hidden = false;
-
-    // mark active link
-    document.querySelectorAll('.menu a').forEach(a => a.classList.toggle('active', a.getAttribute('href') === (hash || '#home')));
+    document.querySelectorAll('.menu a').forEach(a =>
+      a.classList.toggle('active', a.getAttribute('href') === (hash || '#home'))
+    );
   }
 
-  // initial show (based on URL hash)
   showSection(location.hash);
+  window.addEventListener('popstate', () => showSection(location.hash));
 
-  // handle menu clicks (prevent page reload)
-  document.querySelectorAll('.menu a').forEach(a => {
-    a.addEventListener('click', (e) => {
-      // close sidebar on mobile
+  document.querySelectorAll('.menu a, .topbar a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const href = a.getAttribute('href');
+      history.pushState(null, '', href);
+      showSection(href);
       sidebar.classList.remove('open');
-      const href = a.getAttribute('href');
-      history.pushState(null, '', href);
-      showSection(href);
-      e.preventDefault();
     });
   });
 
-  // topbar login link and others
-  document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      const href = a.getAttribute('href');
-      history.pushState(null, '', href);
-      showSection(href);
-      e.preventDefault();
-    });
-  });
-
-  // hamburger
   menuToggle && menuToggle.addEventListener('click', () => {
     sidebar.classList.toggle('open');
   });
 
-  // contrast toggle
   contrastToggle && contrastToggle.addEventListener('click', () => {
     const is = document.body.classList.toggle('high-contrast');
     contrastToggle.setAttribute('aria-pressed', is ? 'true' : 'false');
   });
 
-  // Form: simple IA suggestion (fake)
-  const descricao = document.getElementById('descricao');
-  const iaSuggestion = document.getElementById('iaSuggestion');
+  // =====================
+  // LOGIN + CONTINUAR CONECTADO
+  // =====================
+  const loginForm = document.getElementById('loginForm');
+  const lembrarCheck = document.getElementById('lembrarLogin');
 
-  function sugerirPorTexto(text) {
-    const t = (text || '').toLowerCase();
-    if (!t) return 'Descreva o problema para receber sugestões automáticas.';
-    if (t.includes('senha')) return 'Sugestão: Verifique "Esqueci minha senha" ou redefina no painel de usuários.';
-    if (t.includes('wifi') || t.includes('wi-fi')) return 'Sugestão: Verifique o roteador e tente reconectar na rede PrimeGorila.';
-    if (t.includes('catraca')) return 'Sugestão: Checar sensor e reiniciar o controlador da catraca.';
-    return 'Sugestão: Chamado encaminhado ao time técnico para análise.';
+  function getStorage() {
+    return lembrarCheck?.checked ? localStorage : sessionStorage;
   }
 
-  if (descricao) {
-    descricao.addEventListener('input', (e) => {
-      iaSuggestion.textContent = sugerirPorTexto(e.target.value);
+  function getUser() {
+    return JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
+  }
+
+  // Se já estiver logado, vai direto para chamados
+  const userAtual = getUser();
+  if (userAtual) {
+    if (userWelcome) userWelcome.textContent = `Olá, ${userAtual.nome}!`;
+    location.hash = "#meus-chamados";
+    showSection("#meus-chamados");
+    carregarChamados();
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = loginForm.email.value;
+      const senha = loginForm.senha.value;
+
+      try {
+        const resp = await fetch(`${API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, senha })
+        });
+
+        if (!resp.ok) {
+          alert("Usuário ou senha inválidos.");
+          return;
+        }
+
+        const user = await resp.json();
+        const storage = getStorage();
+        storage.setItem("user", JSON.stringify(user));
+
+        if (userWelcome) userWelcome.textContent = `Olá, ${user.nome}!`;
+        alert(`Bem-vindo, ${user.nome}!`);
+
+        location.hash = "#meus-chamados";
+        showSection("#meus-chamados");
+        carregarChamados();
+      } catch (err) {
+        alert("Erro de conexão com o servidor.");
+        console.error(err);
+      }
     });
   }
 
-  // Handle submit (local only): add to local array and render in table
-  const formChamado = document.getElementById('formChamado');
-  const tabelaChamados = document.querySelector('#tabelaChamados tbody');
-  let chamados = [];
+  // =====================
+  // BLOQUEAR PÁGINAS SEM LOGIN
+  // =====================
+  const restrictedSections = ["#abrir-chamado", "#meus-chamados", "#relatorios"];
+  const originalShowSection = showSection;
+  showSection = function (hash) {
+    const user = getUser();
+    if (restrictedSections.includes(hash) && !user) {
+      alert("Você precisa estar logado para acessar esta página.");
+      hash = "#login";
+    }
+    originalShowSection(hash);
+  };
 
-  function renderChamados(filter='todos') {
+  // =====================
+  // LOGOUT
+  // =====================
+  window.logout = function () {
+    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
+    if (userWelcome) userWelcome.textContent = "";
+    alert("Sessão encerrada.");
+    location.hash = "#login";
+    showSection("#login");
+  };
+
+  // =====================
+  // FORMULÁRIO DE CHAMADO
+  // =====================
+  const formChamado = document.getElementById('formChamado');
+  if (formChamado) {
+    formChamado.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = getUser();
+      if (!user) {
+        alert("Você precisa estar logado para abrir um chamado.");
+        return;
+      }
+
+      const data = {
+        titulo: formChamado.titulo.value,
+        descricao: formChamado.descricao.value,
+        prioridade: formChamado.prioridade.value,
+        usuario_id: user.id_usuario
+      };
+
+      try {
+        const resp = await fetch(`${API_URL}/chamados`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+
+        if (!resp.ok) throw new Error("Erro ao criar chamado");
+
+        alert("Chamado criado com sucesso!");
+        formChamado.reset();
+        location.hash = "#meus-chamados";
+        showSection("#meus-chamados");
+        carregarChamados();
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao enviar chamado.");
+      }
+    });
+  }
+
+  // =====================
+  // CADASTRO DE NOVO USUÁRIO
+  // =====================
+  const cadastroForm = document.getElementById('cadastroForm');
+  if (cadastroForm) {
+    cadastroForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const nome = cadastroForm.nome.value;
+      const email = cadastroForm.emailCadastro.value;
+      const senha = cadastroForm.senhaCadastro.value;
+
+      try {
+        const resp = await fetch(`${API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ nome, email, senha })
+        });
+
+        if (resp.ok) {
+          alert("Cadastro realizado com sucesso! Faça login para continuar.");
+          location.hash = "#login";
+          showSection("#login");
+          cadastroForm.reset();
+        } else if (resp.status === 409) {
+          alert("E-mail já cadastrado. Faça login ou use outro endereço.");
+        } else {
+          alert("Erro ao criar conta. Tente novamente.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro de conexão com o servidor.");
+      }
+    });
+  }
+
+  // =====================
+  // CARREGAR CHAMADOS DO USUÁRIO
+  // =====================
+  async function carregarChamados() {
+    const user = getUser();
+    if (!user) return;
+
+    try {
+      const resp = await fetch(`${API_URL}/chamados/${user.id_usuario}`);
+      const data = await resp.json();
+      renderChamados(data);
+    } catch (err) {
+      console.error(err);
+      tabelaChamados.innerHTML = `<tr><td colspan="5">Erro ao carregar chamados.</td></tr>`;
+    }
+  }
+
+  // =====================
+  // RENDERIZAÇÃO DA TABELA
+  // =====================
+  function renderChamados(lista) {
     tabelaChamados.innerHTML = '';
-    const list = chamados.filter(c => filter === 'todos' ? true : c.status === filter);
-    if (list.length === 0) {
+    if (!lista || lista.length === 0) {
       tabelaChamados.innerHTML = '<tr><td colspan="5" style="opacity:.7">Nenhum chamado.</td></tr>';
       return;
     }
-    list.forEach(c => {
+    lista.forEach(c => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${escapeHtml(c.titulo)}</td>
-                      <td>${escapeHtml(c.prioridade)}</td>
-                      <td>${escapeHtml(c.status)}</td>
-                      <td>${escapeHtml(new Date(c.data).toLocaleString())}</td>
-                      <td><button class="btn small" data-id="${c.id}" onclick="marcarResolvido(${c.id})">Marcar Resolvido</button></td>`;
+      tr.innerHTML = `
+        <td>${escapeHtml(c.titulo)}</td>
+        <td>${escapeHtml(c.prioridade)}</td>
+        <td>${escapeHtml(c.status)}</td>
+        <td>${new Date(c.data_abertura).toLocaleDateString()}</td>
+        <td>
+          ${c.status !== "Resolvido" ? `<button class="btn small" onclick="resolverChamado(${c.id_chamado})">Marcar Resolvido</button>` : ""}
+        </td>`;
       tabelaChamados.appendChild(tr);
     });
   }
 
-  // simple escape
-  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[m]); }
+  // =====================
+  // RESOLVER CHAMADO (somente técnico)
+  // =====================
+  window.resolverChamado = async function (id) {
+    const user = getUser();
+    if (!user || user.tipo_usuario !== "técnico") {
+      alert("Somente técnicos podem resolver chamados.");
+      return;
+    }
 
-  // add chamado
-  if (formChamado) {
-    formChamado.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = {
-        id: Date.now(),
-        titulo: formChamado.titulo.value,
-        categoria: formChamado.categoria.value,
-        prioridade: formChamado.prioridade.value,
-        descricao: formChamado.descricao.value,
-        status: 'Aberto',
-        data: new Date().toISOString()
-      };
-      chamados.unshift(data);
-      formChamado.reset();
-      iaSuggestion.textContent = 'Chamado criado e encaminhado. A IA sugeriu uma ação.';
-      // go to meus chamados
-      history.pushState(null,'','#meus-chamados');
-      showSection('#meus-chamados');
-      renderChamados(document.getElementById('filterStatus').value);
-    });
-  }
-
-  // clear
-  document.getElementById('limparForm')?.addEventListener('click', () => formChamado.reset());
-
-  // filter
-  document.getElementById('filterStatus')?.addEventListener('change', (e) => {
-    renderChamados(e.target.value);
-  });
-
-  document.getElementById('btnRefresh')?.addEventListener('click', () => renderChamados(document.getElementById('filterStatus').value));
-
-  // expose function to window to allow inline onclick in created rows
-  window.marcarResolvido = function(id) {
-    const idx = chamados.findIndex(c => c.id === id);
-    if (idx !== -1) {
-      chamados[idx].status = 'Resolvido';
-      renderChamados(document.getElementById('filterStatus').value);
-      alert('Chamado marcado como Resolvido (local demo).');
+    try {
+      const resp = await fetch(`${API_URL}/chamados/${id}`, {
+        method: "PUT"
+      });
+      if (resp.ok) {
+        alert("Chamado resolvido!");
+        carregarChamados();
+      } else {
+        alert("Erro ao resolver chamado.");
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // populate demo data
-  chamados = [
-    { id:1, titulo:'Falha no Wi-Fi da sala A', prioridade:'Alta', status:'Aberto', data: new Date().toISOString()},
-    { id:2, titulo:'Catraca com erro E-12', prioridade:'Média', status:'Em Andamento', data: new Date().toISOString()},
-    { id:3, titulo:'Aplicativo travando ao carregar treino', prioridade:'Baixa', status:'Resolvido', data: new Date().toISOString()},
-  ];
-  renderChamados();
+  // =====================
+  // FILTRO E REFRESH
+  // =====================
+  document.getElementById('filterStatus')?.addEventListener('change', (e) => {
+    const value = e.target.value;
+    const rows = tabelaChamados.querySelectorAll('tr');
+    rows.forEach(r => {
+      const status = r.children[2]?.textContent || "";
+      r.style.display = (value === 'todos' || value === status) ? '' : 'none';
+    });
+  });
 
-  // Chart.js sample chart
-  const ctx = document.getElementById('chartStatus');
-if (ctx && window.Chart) {
-  const chart = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Aberto', 'Em Andamento', 'Resolvido'],
-      datasets: [{
-        data: [1, 1, 1],
-        backgroundColor: ['#ff6384', '#ffcd56', '#36a2eb']
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // permite redimensionamento flexível
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { color: '#fff' } // ajusta cor da legenda para o fundo escuro
-        }
-      },
-      layout: {
-        padding: 10
-      }
-    }
-})}});
+  document.getElementById('btnRefresh')?.addEventListener('click', carregarChamados);
 
+  // =====================
+  // Função de escape HTML
+  // =====================
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+  }
 
+  // =====================
+  // Acessibilidade: Sugestões IA
+  // =====================
+  const descricao = document.getElementById('descricao');
+  const iaSuggestion = document.getElementById('iaSuggestion');
+
+  if (descricao) {
+    descricao.addEventListener('input', (e) => {
+      const t = (e.target.value || '').toLowerCase();
+      if (t.includes('senha')) iaSuggestion.textContent = 'Sugestão: redefinir senha no painel de usuários.';
+      else if (t.includes('wifi') || t.includes('wi-fi')) iaSuggestion.textContent = 'Sugestão: verifique a conexão da rede PrimeGorila.';
+      else if (t.includes('catraca')) iaSuggestion.textContent = 'Sugestão: reinicie o controlador da catraca.';
+      else iaSuggestion.textContent = 'Chamado encaminhado ao time técnico.';
+    });
+  }
+});

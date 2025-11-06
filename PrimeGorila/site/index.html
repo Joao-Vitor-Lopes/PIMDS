@@ -42,6 +42,7 @@
         <li><a href="#relatorios">Relatórios</a></li>
         <li><a href="#acessibilidade">Acessibilidade</a></li>
         <li><a href="#login">Login</a></li>
+        <li><a href="#" onclick="logout()">Sair</a></li>
       </ul>
     </nav>
 
@@ -58,6 +59,7 @@
       <div class="hero">
         <h2 id="homeTitle">Prime Gorila Academia</h2>
         <img src="images/mascote_gorila.svg" alt="Mascote Prime Gorila" class="hero-mascot">
+        <span id="userWelcome" class="user-welcome"></span>
         <div class="hero-text">
           <p>Sistema Integrado de Chamados — Agilidade, histórico e sugestões automáticas</p>
           <a href="#login" class="btn primary">Acessar Sistema</a>
@@ -163,25 +165,52 @@
     </section>
 
     <!-- Login -->
-    <section id="login" class="page page-login" aria-labelledby="loginTitle" hidden>
-      <div class="card card-login">
-        <h3 id="loginTitle">Entrar no Sistema</h3>
-        <form id="loginForm">
-          <label for="email">E-mail</label>
-          <input id="email" name="email" type="email" required>
+<section id="login" class="page page-login" aria-labelledby="loginTitle" hidden>
+  <div class="card card-login">
+    <h3 id="loginTitle">Entrar no Sistema</h3>
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" required>
 
-          <label for="senha">Senha</label>
-          <input id="senha" name="senha" type="password" required>
+      <label for="senha">Senha</label>
+      <input id="senha" name="senha" type="password" required>
 
-          <div class="form-actions">
-            <button type="submit" class="btn primary">Entrar</button>
-            <a href="#abrir-chamado" class="btn">Abrir Chamado (Sem login)</a>
-          </div>
-        </form>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+        <input type="checkbox" id="lembrarLogin"> Continuar conectado
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Entrar</button>
       </div>
-    </section>
+      <a href="#cadastro" class="btn">Criar Conta</a>
+    </form>
+  </div>
+</section>
 
   </main>
+
+<!-- Cadastro -->
+<section id="cadastro" class="page page-login" aria-labelledby="cadastroTitle" hidden>
+  <div class="card card-login">
+    <h3 id="cadastroTitle">Criar Conta</h3>
+    <form id="cadastroForm">
+      <label for="nome">Usuário</label>
+      <input id="nome" name="nome" type="text" placeholder="Digite seu nome de usuário" required>
+
+      <label for="emailCadastro">E-mail</label>
+      <input id="emailCadastro" name="email" type="email" required>
+
+      <label for="senhaCadastro">Senha</label>
+      <input id="senhaCadastro" name="senha" type="password" required>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Cadastrar</button>
+        <a href="#login" class="btn">Já tenho conta</a>
+      </div>
+    </form>
+  </div>
+</section>
+
 
   <!-- Footer (mobile) -->
   <footer class="footer">
