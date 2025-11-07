@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PrimeGorilaAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4306bf531aaad386f6326efab16ec10a66c5468d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44f87f7fba4a2c7f1c300629673b0f4f376ac9db")]
 [assembly: System.Reflection.AssemblyProductAttribute("PrimeGorilaAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PrimeGorilaAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

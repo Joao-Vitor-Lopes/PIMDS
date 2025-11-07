@@ -299,18 +299,51 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =====================
-  // Acessibilidade: Sugestões IA
+  // IA: Sugestões automáticas (OpenAI + fallback)
   // =====================
   const descricao = document.getElementById('descricao');
   const iaSuggestion = document.getElementById('iaSuggestion');
 
-  if (descricao) {
-    descricao.addEventListener('input', (e) => {
-      const t = (e.target.value || '').toLowerCase();
-      if (t.includes('senha')) iaSuggestion.textContent = 'Sugestão: redefinir senha no painel de usuários.';
-      else if (t.includes('wifi') || t.includes('wi-fi')) iaSuggestion.textContent = 'Sugestão: verifique a conexão da rede PrimeGorila.';
-      else if (t.includes('catraca')) iaSuggestion.textContent = 'Sugestão: reinicie o controlador da catraca.';
-      else iaSuggestion.textContent = 'Chamado encaminhado ao time técnico.';
-    });
+  function debounce(fn, delay = 400) {
+    let t;
+    return function (...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), delay);
+    };
   }
+
+  async function pedirSugestao(text) {
+    if (!text || !text.trim()) {
+      iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
+      return;
+    }
+    iaSuggestion.textContent = 'Buscando sugestão...';
+    try {
+      const resp = await fetch(`${API_URL}/ia/suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      if (!resp.ok) {
+        iaSuggestion.textContent = sugerirPorTextoLocal(text);
+        return;
+      }
+      const data = await resp.json();
+      iaSuggestion.textContent = data.suggestion || sugerirPorTextoLocal(text);
+    } catch (err) {
+      console.error('Erro IA:', err);
+      iaSuggestion.textContent = sugerirPorTextoLocal(text);
+    }
+  }
+
+  function sugerirPorTextoLocal(text) {
+    const t = (text || '').toLowerCase();
+    if (!t) return 'Descreva o problema para receber sugestões automáticas.';
+    if (t.includes('senha')) return 'Sugestão: Verifique "Esqueci minha senha".';
+    if (t.includes('wifi') || t.includes('wi-fi')) return 'Sugestão: Reinicie o roteador.';
+    if (t.includes('catraca')) return 'Sugestão: Reinicie o controlador da catraca.';
+    return 'Sugestão: Chamado encaminhado ao time técnico.';
+  }
+
+  if (descricao) descricao.addEventListener('input', debounce(e => pedirSugestao(e.target.value), 450));
 });
