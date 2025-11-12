@@ -6,9 +6,18 @@ namespace PrimeGorilaAPI.Models
     {
         [Key]
         public int id_usuario { get; set; }
-        public string nome { get; set; }
-        public string email { get; set; }
-        public string senha { get; set; }
+
+        [Required]
+        public string nome { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string email { get; set; } = string.Empty;
+
+        [Required]
+        public string senha { get; set; } = string.Empty;
+
         public string tipo_usuario { get; set; } = "normal";
     }
 }
+// ...existing code...

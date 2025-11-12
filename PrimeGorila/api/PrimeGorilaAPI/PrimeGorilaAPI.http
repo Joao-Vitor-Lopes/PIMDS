@@ -1,4 +1,4 @@
-@PrimeGorilaAPI_HostAddress = http://localhost:5279
+@PrimeGorilaAPI_HostAddress = http://localhost:5000
 
 GET {{PrimeGorilaAPI_HostAddress}}/weatherforecast/
 Accept: application/json

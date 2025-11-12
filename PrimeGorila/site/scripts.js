@@ -60,7 +60,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getUser() {
-    return JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
+    try {
+      return JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
   }
 
   // Se já estiver logado, vai direto para chamados
@@ -75,8 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = loginForm.email.value;
-      const senha = loginForm.senha.value;
+      const email = (loginForm.email?.value || '').trim();
+      const senha = (loginForm.senha?.value || '').trim();
+
+      if (!email || !senha) {
+        alert("Preencha e-mail e senha.");
+        return;
+      }
 
       try {
         const resp = await fetch(`${API_URL}/auth/login`, {
@@ -86,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (!resp.ok) {
-          alert("Usuário ou senha inválidos.");
+          const text = await resp.text();
+          alert(text || "Usuário ou senha inválidos.");
           return;
         }
 
@@ -95,8 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         storage.setItem("user", JSON.stringify(user));
 
         if (userWelcome) userWelcome.textContent = `Olá, ${user.nome}!`;
-        alert(`Bem-vindo, ${user.nome}!`);
-
+        // feedback mínimo
         location.hash = "#meus-chamados";
         showSection("#meus-chamados");
         carregarChamados();
@@ -182,9 +191,14 @@ document.addEventListener('DOMContentLoaded', () => {
     cadastroForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const nome = cadastroForm.nome.value;
-      const email = cadastroForm.emailCadastro.value;
-      const senha = cadastroForm.senhaCadastro.value;
+      const nome = (cadastroForm.nome?.value || '').trim();
+      const email = (cadastroForm.emailCadastro?.value || '').trim();
+      const senha = (cadastroForm.senhaCadastro?.value || '').trim();
+
+      if (!nome || !email || !senha) {
+        alert("Preencha nome, e-mail e senha.");
+        return;
+      }
 
       try {
         const resp = await fetch(`${API_URL}/auth/register`, {
@@ -201,7 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (resp.status === 409) {
           alert("E-mail já cadastrado. Faça login ou use outro endereço.");
         } else {
-          alert("Erro ao criar conta. Tente novamente.");
+          const text = await resp.text();
+          alert(text || "Erro ao criar conta. Tente novamente.");
         }
       } catch (err) {
         console.error(err);
@@ -219,11 +234,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const resp = await fetch(`${API_URL}/chamados/${user.id_usuario}`);
+      if (!resp.ok) throw new Error('Erro ao buscar chamados');
       const data = await resp.json();
       renderChamados(data);
     } catch (err) {
       console.error(err);
-      tabelaChamados.innerHTML = `<tr><td colspan="5">Erro ao carregar chamados.</td></tr>`;
+      if (tabelaChamados) tabelaChamados.innerHTML = `<tr><td colspan="5">Erro ao carregar chamados.</td></tr>`;
     }
   }
 
@@ -231,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // RENDERIZAÇÃO DA TABELA
   // =====================
   function renderChamados(lista) {
+    if (!tabelaChamados) return;
     tabelaChamados.innerHTML = '';
     if (!lista || lista.length === 0) {
       tabelaChamados.innerHTML = '<tr><td colspan="5" style="opacity:.7">Nenhum chamado.</td></tr>';
@@ -314,10 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function pedirSugestao(text) {
     if (!text || !text.trim()) {
-      iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
+      if (iaSuggestion) iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
       return;
     }
-    iaSuggestion.textContent = 'Buscando sugestão...';
+    if (iaSuggestion) iaSuggestion.textContent = 'Buscando sugestão...';
     try {
       const resp = await fetch(`${API_URL}/ia/suggest`, {
         method: 'POST',
@@ -325,14 +342,14 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ text })
       });
       if (!resp.ok) {
-        iaSuggestion.textContent = sugerirPorTextoLocal(text);
+        if (iaSuggestion) iaSuggestion.textContent = sugerirPorTextoLocal(text);
         return;
       }
       const data = await resp.json();
-      iaSuggestion.textContent = data.suggestion || sugerirPorTextoLocal(text);
+      if (iaSuggestion) iaSuggestion.textContent = data.suggestion || sugerirPorTextoLocal(text);
     } catch (err) {
       console.error('Erro IA:', err);
-      iaSuggestion.textContent = sugerirPorTextoLocal(text);
+      if (iaSuggestion) iaSuggestion.textContent = sugerirPorTextoLocal(text);
     }
   }
 

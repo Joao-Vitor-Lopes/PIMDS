@@ -161,4 +161,3 @@ C:\Users\joaos\PIMDS\PrimeGorila\api\PrimeGorilaAPI\obj\Debug\net9.0\refint\Prim
 C:\Users\joaos\PIMDS\PrimeGorila\api\PrimeGorilaAPI\obj\Debug\net9.0\PrimeGorilaAPI.pdb
 C:\Users\joaos\PIMDS\PrimeGorila\api\PrimeGorilaAPI\obj\Debug\net9.0\PrimeGorilaAPI.genruntimeconfig.cache
 C:\Users\joaos\PIMDS\PrimeGorila\api\PrimeGorilaAPI\obj\Debug\net9.0\ref\PrimeGorilaAPI.dll
-C:\Users\joaos\PIMDS\PrimeGorila\api\PrimeGorilaAPI\bin\Debug\net9.0\secret.json
