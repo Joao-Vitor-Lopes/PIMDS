@@ -8,13 +8,21 @@ namespace PrimeGorilaAPI.Models
     {
         [Key]
         public int id_chamado { get; set; }
+
+        [Required]
         public string titulo { get; set; }
+
+        [Required]
         public string descricao { get; set; }
-        public DateTime data_abertura { get; set; } = DateTime.Now;
-        public string status { get; set; }
+
+        [Required]
         public string prioridade { get; set; }
+
+        public string status { get; set; } = "Aberto";
+        public DateTime data_abertura { get; set; } = DateTime.Now;
 
         [ForeignKey("Usuario")]
         public int usuario_id { get; set; }
+        public Usuario Usuario { get; set; }
     }
 }

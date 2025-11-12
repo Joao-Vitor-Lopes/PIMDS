@@ -138,6 +138,31 @@
       </div>
     </section>
 
+    <!-- Chamados (visível apenas para técnicos) -->
+<section id="chamados" class="page page-list" aria-labelledby="chamadosTitle" hidden>
+  <div class="card">
+    <h3 id="chamadosTitle">Chamados de Todos os Usuários</h3>
+    <p id="chamadosAviso" style="color: #ff5555; font-weight: 600;"></p>
+
+    <table class="table" id="tabelaChamadosTecnico" aria-describedby="chamadosTitle">
+      <thead>
+        <tr>
+          <th>Usuário</th>
+          <th>Título</th>
+          <th>Prioridade</th>
+          <th>Status</th>
+          <th>Data</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Linhas renderizadas via JS -->
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
     <!-- Relatórios -->
     <section id="relatorios" class="page page-report" aria-labelledby="relTitle" hidden>
       <div class="card">

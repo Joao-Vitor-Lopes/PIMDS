@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const contrastToggle = document.getElementById('contrastToggle');
   const tabelaChamados = document.querySelector('#tabelaChamados tbody');
   const userWelcome = document.getElementById('userWelcome');
-  const API_URL = "http://localhost:5000/api"; // endereço da sua API ASP.NET
+  const API_URL = "http://localhost:5000/api";
 
   // =====================
   // FUNÇÕES GERAIS
@@ -67,13 +67,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Se já estiver logado, vai direto para chamados
+  // Se já estiver logado
   const userAtual = getUser();
   if (userAtual) {
     if (userWelcome) userWelcome.textContent = `Olá, ${userAtual.nome}!`;
-    location.hash = "#meus-chamados";
-    showSection("#meus-chamados");
-    carregarChamados();
+    configurarInterfacePorTipo(userAtual);
+    if (userAtual.tipo_usuario === "técnico") {
+      location.hash = "#chamados";
+      showSection("#chamados");
+      carregarChamadosTecnico();
+    } else {
+      location.hash = "#meus-chamados";
+      showSection("#meus-chamados");
+      carregarChamados();
+    }
   }
 
   if (loginForm) {
@@ -105,10 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
         storage.setItem("user", JSON.stringify(user));
 
         if (userWelcome) userWelcome.textContent = `Olá, ${user.nome}!`;
-        // feedback mínimo
-        location.hash = "#meus-chamados";
-        showSection("#meus-chamados");
-        carregarChamados();
+        configurarInterfacePorTipo(user);
+
+        if (user.tipo_usuario === "técnico") {
+          location.hash = "#chamados";
+          showSection("#chamados");
+          carregarChamadosTecnico();
+        } else {
+          location.hash = "#meus-chamados";
+          showSection("#meus-chamados");
+          carregarChamados();
+        }
+
       } catch (err) {
         alert("Erro de conexão com o servidor.");
         console.error(err);
@@ -119,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // =====================
   // BLOQUEAR PÁGINAS SEM LOGIN
   // =====================
-  const restrictedSections = ["#abrir-chamado", "#meus-chamados", "#relatorios"];
+  const restrictedSections = ["#abrir-chamado", "#meus-chamados", "#relatorios", "#chamados"];
   const originalShowSection = showSection;
   showSection = function (hash) {
     const user = getUser();
@@ -226,6 +241,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =====================
+  // CONFIGURAR INTERFACE POR TIPO
+  // =====================
+  function configurarInterfacePorTipo(user) {
+    const menu = document.querySelector(".menu ul");
+    const menuChamados = menu.querySelector('a[href="#chamados"]');
+
+    if (user.tipo_usuario === "técnico") {
+      if (!menuChamados) {
+        const li = document.createElement("li");
+        li.innerHTML = '<a href="#chamados">Chamados</a>';
+        menu.appendChild(li);
+      }
+    } else {
+      if (menuChamados) menuChamados.parentElement.remove();
+    }
+  }
+
+  // =====================
   // CARREGAR CHAMADOS DO USUÁRIO
   // =====================
   async function carregarChamados() {
@@ -234,41 +267,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const resp = await fetch(`${API_URL}/chamados/${user.id_usuario}`);
-      if (!resp.ok) throw new Error('Erro ao buscar chamados');
       const data = await resp.json();
       renderChamados(data);
-    } catch (err) {
-      console.error(err);
+    } catch {
       if (tabelaChamados) tabelaChamados.innerHTML = `<tr><td colspan="5">Erro ao carregar chamados.</td></tr>`;
     }
   }
 
   // =====================
-  // RENDERIZAÇÃO DA TABELA
+  // CARREGAR TODOS OS CHAMADOS (TÉCNICO)
   // =====================
-  function renderChamados(lista) {
-    if (!tabelaChamados) return;
-    tabelaChamados.innerHTML = '';
-    if (!lista || lista.length === 0) {
-      tabelaChamados.innerHTML = '<tr><td colspan="5" style="opacity:.7">Nenhum chamado.</td></tr>';
+  async function carregarChamadosTecnico() {
+    const user = getUser();
+    const tabela = document.querySelector("#tabelaChamadosTecnico tbody");
+    const aviso = document.getElementById("chamadosAviso");
+
+    if (!user) return;
+
+    if (user.tipo_usuario !== "técnico") {
+      aviso.textContent = "Apenas usuário técnico pode acessar esta sessão.";
+      tabela.innerHTML = "";
       return;
     }
-    lista.forEach(c => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${escapeHtml(c.titulo)}</td>
-        <td>${escapeHtml(c.prioridade)}</td>
-        <td>${escapeHtml(c.status)}</td>
-        <td>${new Date(c.data_abertura).toLocaleDateString()}</td>
-        <td>
-          ${c.status !== "Resolvido" ? `<button class="btn small" onclick="resolverChamado(${c.id_chamado})">Marcar Resolvido</button>` : ""}
-        </td>`;
-      tabelaChamados.appendChild(tr);
-    });
+
+    aviso.textContent = "";
+    try {
+      const resp = await fetch(`${API_URL}/chamados`);
+      const data = await resp.json();
+      tabela.innerHTML = "";
+      if (!data.length) {
+        tabela.innerHTML = '<tr><td colspan="6">Nenhum chamado encontrado.</td></tr>';
+        return;
+      }
+
+      data.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(c.usuario_nome || "—")}</td>
+          <td>${escapeHtml(c.titulo)}</td>
+          <td>${escapeHtml(c.prioridade)}</td>
+          <td>${escapeHtml(c.status)}</td>
+          <td>${new Date(c.data_abertura).toLocaleDateString()}</td>
+          <td>${c.status !== "Resolvido" ? `<button class="btn small" onclick="resolverChamado(${c.id_chamado})">Resolver</button>` : ""}</td>
+        `;
+        tabela.appendChild(tr);
+      });
+    } catch {
+      tabela.innerHTML = '<tr><td colspan="6">Erro ao carregar chamados.</td></tr>';
+    }
   }
 
   // =====================
-  // RESOLVER CHAMADO (somente técnico)
+  // RESOLVER CHAMADO
   // =====================
   window.resolverChamado = async function (id) {
     const user = getUser();
@@ -278,12 +328,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const resp = await fetch(`${API_URL}/chamados/${id}`, {
-        method: "PUT"
-      });
+      const resp = await fetch(`${API_URL}/chamados/${id}`, { method: "PUT" });
       if (resp.ok) {
         alert("Chamado resolvido!");
-        carregarChamados();
+        carregarChamadosTecnico();
       } else {
         alert("Erro ao resolver chamado.");
       }
@@ -293,21 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // =====================
-  // FILTRO E REFRESH
-  // =====================
-  document.getElementById('filterStatus')?.addEventListener('change', (e) => {
-    const value = e.target.value;
-    const rows = tabelaChamados.querySelectorAll('tr');
-    rows.forEach(r => {
-      const status = r.children[2]?.textContent || "";
-      r.style.display = (value === 'todos' || value === status) ? '' : 'none';
-    });
-  });
-
-  document.getElementById('btnRefresh')?.addEventListener('click', carregarChamados);
-
-  // =====================
-  // Função de escape HTML
+  // Funções auxiliares
   // =====================
   function escapeHtml(s) {
     return String(s || '').replace(/[&<>"']/g, (m) => ({
@@ -316,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =====================
-  // IA: Sugestões automáticas (OpenAI + fallback)
+  // IA: Sugestões automáticas
   // =====================
   const descricao = document.getElementById('descricao');
   const iaSuggestion = document.getElementById('iaSuggestion');
@@ -331,25 +365,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function pedirSugestao(text) {
     if (!text || !text.trim()) {
-      if (iaSuggestion) iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
+      iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
       return;
     }
-    if (iaSuggestion) iaSuggestion.textContent = 'Buscando sugestão...';
+    iaSuggestion.textContent = 'Buscando sugestão...';
     try {
       const resp = await fetch(`${API_URL}/ia/suggest`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
       });
-      if (!resp.ok) {
-        if (iaSuggestion) iaSuggestion.textContent = sugerirPorTextoLocal(text);
-        return;
-      }
       const data = await resp.json();
-      if (iaSuggestion) iaSuggestion.textContent = data.suggestion || sugerirPorTextoLocal(text);
-    } catch (err) {
-      console.error('Erro IA:', err);
-      if (iaSuggestion) iaSuggestion.textContent = sugerirPorTextoLocal(text);
+      iaSuggestion.textContent = data.suggestion || sugerirPorTextoLocal(text);
+    } catch {
+      iaSuggestion.textContent = sugerirPorTextoLocal(text);
     }
   }
 
