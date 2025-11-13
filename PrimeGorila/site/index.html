@@ -5,20 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Prime Gorila - Sistema de Chamados</title>
 
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-
-  <!-- CSS -->
   <link rel="stylesheet" href="styles.css">
-
-  <!-- favicon optional -->
 </head>
 <body class="pg-body">
 
-  <!-- Skip link for accessibility -->
   <a class="skip-link" href="#main">Ir para o conteúdo</a>
 
-  <!-- Navbar / Top bar (visible on mobile) -->
   <header class="topbar">
     <button id="menuToggle" aria-label="Abrir menu" class="hamburger">☰</button>
     <nav class="top-actions">
@@ -27,7 +20,6 @@
     </nav>
   </header>
 
-  <!-- Sidebar -->
   <aside id="sidebar" class="sidebar" aria-label="Navegação principal">
     <div class="sidebar-header">
       <a href="#home"><img src="images/mascote_gorila.svg" alt="Mascote Prime Gorila" class="mascot"></a>
@@ -45,16 +37,13 @@
         <li><a href="#" onclick="logout()">Sair</a></li>
       </ul>
     </nav>
-
     <div class="sidebar-footer">
       <small>© Prime Gorila</small>
     </div>
   </aside>
 
-  <!-- Main content wrapper -->
   <main id="main" class="main">
-
-    <!-- Home / Splash -->
+    <!-- Home -->
     <section id="home" class="page page-home" aria-labelledby="homeTitle">
       <div class="hero">
         <h2 id="homeTitle">Prime Gorila Academia</h2>
@@ -95,8 +84,6 @@
           <textarea id="descricao" name="descricao" rows="5" required placeholder="Descreva o problema..."></textarea>
 
           <div class="ia-suggestion" id="iaSuggestion" aria-live="polite"></div>
-          
-
           <div class="form-actions">
             <button type="submit" class="btn primary">Enviar Chamado</button>
             <button type="button" id="limparForm" class="btn">Limpar</button>
@@ -105,7 +92,7 @@
       </div>
     </section>
 
-    <!-- Meus Chamados (lista) -->
+    <!-- Meus Chamados -->
     <section id="meus-chamados" class="page page-list" aria-labelledby="meusTitle" hidden>
       <div class="card">
         <h3 id="meusTitle">Meus Chamados</h3>
@@ -121,7 +108,7 @@
           <button id="btnRefresh" class="btn">Atualizar</button>
         </div>
 
-        <table class="table" id="tabelaChamados" aria-describedby="meusTitle">
+        <table class="table" id="tabelaChamados">
           <thead>
             <tr>
               <th>Título</th>
@@ -131,121 +118,103 @@
               <th>Ações</th>
             </tr>
           </thead>
-          <tbody>
-            <!-- rows dinamicamente via JS -->
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
     </section>
 
-    <!-- Chamados (visível apenas para técnicos) -->
-<section id="chamados" class="page page-list" aria-labelledby="chamadosTitle" hidden>
-  <div class="card">
-    <h3 id="chamadosTitle">Chamados de Todos os Usuários</h3>
-    <p id="chamadosAviso" style="color: #ff5555; font-weight: 600;"></p>
+    <!-- Box da Descrição -->
+    <div id="boxDescricao" class="descricao-box" hidden>
+      <div class="descricao-conteudo">
+        <h3 id="boxTitulo"></h3>
+        <p><strong>Prioridade:</strong> <span id="boxPrioridade"></span></p>
+        <p><strong>Status:</strong> <span id="boxStatus"></span></p>
+        <p><strong>Data de Abertura:</strong> <span id="boxData"></span></p>
+        <hr>
+        <p id="boxTexto" style="white-space: pre-line;"></p>
+        <div class="descricao-acoes">
+          <button id="fecharBox" class="btn primary">Fechar</button>
+        </div>
+      </div>
+    </div>
 
-    <table class="table" id="tabelaChamadosTecnico" aria-describedby="chamadosTitle">
-      <thead>
-        <tr>
-          <th>Usuário</th>
-          <th>Título</th>
-          <th>Prioridade</th>
-          <th>Status</th>
-          <th>Data</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Linhas renderizadas via JS -->
-      </tbody>
-    </table>
-  </div>
-</section>
+    <!-- Chamados Técnicos -->
+    <section id="chamados" class="page page-list" aria-labelledby="chamadosTitle" hidden>
+      <div class="card">
+        <h3 id="chamadosTitle">Chamados de Todos os Usuários</h3>
+        <p id="chamadosAviso" style="color:#ff5555;font-weight:600;"></p>
+        <table class="table" id="tabelaChamadosTecnico">
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Título</th>
+              <th>Prioridade</th>
+              <th>Status</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
 
-
-    <!-- Relatórios -->
-    <section id="relatorios" class="page page-report" aria-labelledby="relTitle" hidden>
+   <!-- Relatórios -->
+    <section id="relatorios" class="page page-report" hidden>
       <div class="card">
         <h3 id="relTitle">Relatórios</h3>
-        <p>Gráficos e indicadores (ex.: chamados por status, tempo médio de resolução).</p>
-        <canvas id="chartStatus" width="20" height="10" aria-label="Gráfico de status"></canvas>
+        <canvas id="chartStatus"></canvas>
       </div>
     </section>
 
-    <!-- Acessibilidade (Libras) -->
-    <section id="acessibilidade" class="page page-access" aria-labelledby="accTitle" hidden>
-      <div class="card">
-        <h3 id="accTitle">Acessibilidade</h3>
-        <p>Recursos de acessibilidade e vídeos em Libras com instruções básicas de uso do sistema.</p>
-
-        <div class="video-wrap" role="region" aria-label="Vídeo em Libras">
-          <video controls width="640" id="videoLibras">
-            <source src="videos/tutorial_libras.mp4" type="video/mp4">
-            Seu navegador não suporta vídeo.
-          </video>
-        </div>
-
-        <h4>Ativar modo alto contraste</h4>
-        <p>Use o botão no topo para alternar o modo de alto contraste rapidamente.</p>
-      </div>
-    </section>
 
     <!-- Login -->
-<section id="login" class="page page-login" aria-labelledby="loginTitle" hidden>
-  <div class="card card-login">
-    <h3 id="loginTitle">Entrar no Sistema</h3>
-    <form id="loginForm">
-      <label for="email">E-mail</label>
-      <input id="email" name="email" type="email" required>
-
-      <label for="senha">Senha</label>
-      <input id="senha" name="senha" type="password" required>
-
-      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
-        <input type="checkbox" id="lembrarLogin"> Continuar conectado
-      </label>
-
-      <div class="form-actions">
-        <button type="submit" class="btn primary">Entrar</button>
+    <section id="login" class="page page-login" hidden>
+      <div class="card card-login">
+        <h3>Entrar no Sistema</h3>
+        <form id="loginForm">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" required>
+          <label for="senha">Senha</label>
+          <input id="senha" type="password" required>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+            <input type="checkbox" id="lembrarLogin"> Continuar conectado
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Entrar</button>
+          </div>
+          <a href="#cadastro" class="btn">Criar Conta</a>
+        </form>
       </div>
-      <a href="#cadastro" class="btn">Criar Conta</a>
-    </form>
-  </div>
-</section>
+    </section>
 
+    <!-- Cadastro -->
+    <section id="cadastro" class="page page-login" hidden>
+      <div class="card card-login">
+        <h3>Criar Conta</h3>
+        <form id="cadastroForm">
+          <label for="nome">Usuário</label>
+          <input id="nome" type="text" required>
+          <label for="emailCadastro">E-mail</label>
+          <input id="emailCadastro" type="email" required>
+          <label for="senhaCadastro">Senha</label>
+          <input id="senhaCadastro" type="password" required>
+          <div class="form-actions">
+            <button type="submit" class="btn primary">Cadastrar</button>
+            <a href="#login" class="btn">Já tenho conta</a>
+          </div>
+        </form>
+      </div>
+    </section>
   </main>
 
-<!-- Cadastro -->
-<section id="cadastro" class="page page-login" aria-labelledby="cadastroTitle" hidden>
-  <div class="card card-login">
-    <h3 id="cadastroTitle">Criar Conta</h3>
-    <form id="cadastroForm">
-      <label for="nome">Usuário</label>
-      <input id="nome" name="nome" type="text" placeholder="Digite seu nome de usuário" required>
-
-      <label for="emailCadastro">E-mail</label>
-      <input id="emailCadastro" name="email" type="email" required>
-
-      <label for="senhaCadastro">Senha</label>
-      <input id="senhaCadastro" name="senha" type="password" required>
-
-      <div class="form-actions">
-        <button type="submit" class="btn primary">Cadastrar</button>
-        <a href="#login" class="btn">Já tenho conta</a>
-      </div>
-    </form>
-  </div>
-</section>
-
-
-  <!-- Footer (mobile) -->
   <footer class="footer">
     <small>Prime Gorila • Sistema de Chamados — PIM IV</small>
   </footer>
 
-  <!-- Scripts -->
-  <script src="scripts.js"></script>
-  <!-- Chart.js CDN (opcional para relatórios) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="scripts.js"></script>
+
+
 </body>
 </html>

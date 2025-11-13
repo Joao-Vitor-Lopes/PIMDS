@@ -46,6 +46,9 @@ app.UseCors("PermitirTudo");
 
 app.MapControllers();
 
+app.UseDeveloperExceptionPage();
+
+
 // ====================================
 // 🔹 INICIAR SERVIDOR
 // ====================================

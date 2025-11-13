@@ -22,7 +22,8 @@ namespace PrimeGorilaAPI.Models
         public DateTime data_abertura { get; set; } = DateTime.Now;
 
         [ForeignKey("Usuario")]
-        public int usuario_id { get; set; }
-        public Usuario Usuario { get; set; }
+        public int? usuario_id { get; set; }  // <-- FK opcional
+        public Usuario? Usuario { get; set; }
+
     }
 }
