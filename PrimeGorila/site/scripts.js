@@ -512,123 +512,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
- // =====================
-// RELATÓRIOS (gráfico) — SOMENTE PARA TÉCNICOS
-// =====================
-async function carregarRelatorioChamados() {
+
+// ================================
+// RELATÓRIO LOCAL (SEM API)
+// ================================
+
+let chartStatusInstance = null;
+
+function gerarGraficoLocal() {
   const user = getUser();
+  const aviso = document.getElementById("relAviso");
+  const canvas = document.getElementById("chartStatus");
+  if (!canvas) return;
+
+  // Somente técnicos
   if (!user || user.tipo_usuario !== "técnico") {
-    // Oculta a seção se não for técnico
-    const relSection = document.querySelector("#relatorios");
-    if (relSection) relSection.innerHTML = `
-      <div class="card">
-        <h3>Relatórios</h3>
-        <p style="text-align:center;color:#ff7777;">Apenas técnicos têm acesso aos relatórios.</p>
-      </div>`;
+    aviso.style.display = "block";
+    canvas.style.display = "none";
+    return;
+  } else {
+    aviso.style.display = "none";
+    canvas.style.display = "block";
+  }
+
+  const tabela = document.querySelector("#tabelaChamadosTecnico tbody");
+  if (!tabela) return;
+
+  // Contagem de status (SEM "Em Andamento")
+  const counts = { Aberto: 0, Resolvido: 0 };
+  const rows = Array.from(tabela.querySelectorAll("tr"));
+
+  if (rows.length === 0) {
+    setTimeout(gerarGraficoLocal, 800); // tenta novamente se tabela ainda não carregou
     return;
   }
 
-  try {
-    const resp = await fetch(`${API_URL}/chamados/todos`);
-    if (!resp.ok) throw new Error("Erro ao buscar dados do gráfico");
-    const data = await resp.json();
+  rows.forEach(row => {
+    const statusCell = row.children[3]; // 4ª coluna
+    if (!statusCell) return;
+    const status = (statusCell.textContent || "").trim().toLowerCase();
+    if (status.includes("aberto")) counts.Aberto++;
+    else if (status.includes("resol")) counts.Resolvido++;
+  });
 
-    // Filtra chamados do mês atual
-    const hoje = new Date();
-    const mesAtual = hoje.getMonth();
-    const anoAtual = hoje.getFullYear();
-    const chamadosMes = data.filter(c => {
-      const dataAbertura = new Date(c.data_abertura);
-      return (
-        dataAbertura.getMonth() === mesAtual &&
-        dataAbertura.getFullYear() === anoAtual
-      );
-    });
-
-    // Contagem de status
-    const statusCount = { "Aberto": 0, "Em andamento": 0, "Resolvido": 0 };
-    chamadosMes.forEach(c => {
-      const s = (c.status || "Aberto").trim();
-      if (statusCount[s] !== undefined) statusCount[s]++;
-    });
-
-    renderGraficoStatus(statusCount);
-  } catch (err) {
-    console.error(err);
-    alert("Erro ao carregar relatório.");
+  // Se já existir gráfico, destrói e recria
+  if (chartStatusInstance) {
+    chartStatusInstance.destroy();
   }
-}
 
-// =====================
-// Renderiza gráfico de colunas (Chart.js)
-// =====================
-let chartStatus = null;
-function renderGraficoStatus(statusCount) {
-  const ctx = document.getElementById('chartStatus');
-  if (!ctx) return;
-  const chartContext = ctx.getContext('2d');
-  if (chartStatus) chartStatus.destroy(); // Atualiza se já existir
-
-  chartStatus = new Chart(chartContext, {
-    type: 'bar',
+  const ctx = canvas.getContext("2d");
+  chartStatusInstance = new Chart(ctx, {
+    type: "pie",
     data: {
-      labels: ['Aberto', 'Em andamento', 'Resolvido'],
+      labels: ["Aberto", "Resolvido"],
       datasets: [{
-        label: 'Chamados no mês atual',
-        data: [
-          statusCount["Aberto"] || 0,
-          statusCount["Em andamento"] || 0,
-          statusCount["Resolvido"] || 0
-        ],
+        data: [counts.Aberto, counts.Resolvido],
         backgroundColor: [
-          'rgba(255, 99, 132, 0.6)',   // Aberto
-          'rgba(255, 206, 86, 0.6)',   // Em andamento
-          'rgba(75, 192, 192, 0.6)'    // Resolvido
+          "rgba(255, 99, 132, 0.8)",  // Aberto
+          "rgba(75, 192, 192, 0.8)"   // Resolvido
         ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)'
-        ],
-        borderWidth: 2,
-        borderRadius: 6,
+        borderColor: "#111",
+        borderWidth: 1
       }]
     },
     options: {
       responsive: true,
       plugins: {
-        legend: { labels: { color: '#ddd' } },
+        legend: { labels: { color: "#ddd" } },
         title: {
           display: true,
-          text: 'Chamados por Status — Mês Atual',
-          color: '#fff',
+          text: "Chamados Abertos x Resolvidos",
+          color: "#fff",
           font: { size: 18 }
-        }
-      },
-      scales: {
-        x: {
-          ticks: { color: '#ccc' },
-          grid: { color: 'rgba(255,255,255,0.1)' }
-        },
-        y: {
-          beginAtZero: true,
-          ticks: { color: '#ccc', precision: 0 },
-          grid: { color: 'rgba(255,255,255,0.1)' }
         }
       }
     }
   });
 }
 
-// Atualiza gráfico quando o técnico abrir a aba de relatórios
-window.addEventListener('hashchange', () => {
-  if (location.hash === '#relatorios') carregarRelatorioChamados();
+// Executa ao entrar na aba de relatórios
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#relatorios") {
+    setTimeout(gerarGraficoLocal, 500);
+  }
 });
 
-// Se já estiver logado como técnico, carrega o gráfico direto
-const user = getUser();
-if (user && user.tipo_usuario === "técnico") {
-  carregarRelatorioChamados();
+// Atualiza gráfico também após carregar chamados do técnico
+window.atualizarRelatorioChamados = gerarGraficoLocal;
+
+if (typeof atualizarRelatorioChamados === "function") {
+  atualizarRelatorioChamados();
 }
 
 
