@@ -7,6 +7,7 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="./images/mascote_gorila.svg" type="image/png">
 </head>
 <body class="pg-body">
 
@@ -15,7 +16,6 @@
   <header class="topbar">
     <button id="menuToggle" aria-label="Abrir menu" class="hamburger">☰</button>
     <nav class="top-actions">
-      <button id="contrastToggle" aria-pressed="false" class="btn-icon" title="Alto contraste">🌓</button>
       <a href="#acessibilidade" class="btn-icon" title="Acessibilidade (Libras)">🧏‍♀️</a>
     </nav>
   </header>
@@ -32,7 +32,6 @@
         <li><a href="#abrir-chamado">Abrir Chamado</a></li>
         <li><a href="#meus-chamados">Meus Chamados</a></li>
         <li><a href="#relatorios">Relatórios</a></li>
-        <li><a href="#acessibilidade">Acessibilidade</a></li>
         <li><a href="#login">Login</a></li>
         <li><a href="#" onclick="logout()">Sair</a></li>
       </ul>
@@ -186,8 +185,9 @@
           </label>
           <div class="form-actions">
             <button type="submit" class="btn primary">Entrar</button>
+            <a href="#cadastro" class="btn">Criar Conta</a>
           </div>
-          <a href="#cadastro" class="btn">Criar Conta</a>
+          
         </form>
       </div>
     </section>

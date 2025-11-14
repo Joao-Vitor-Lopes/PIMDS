@@ -1,1 +1,3 @@
-select * from Chamado
+use PrimeGorilaDB
+
+select * from Usuario

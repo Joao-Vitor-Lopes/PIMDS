@@ -269,7 +269,7 @@ select:focus {
   .topbar { display: flex; }
 }
 
-/* High contrast */
+/* modo claro - desativado 
 body.high-contrast {
   --bg-1: #000;
   --bg-2: #000;
@@ -280,3 +280,4 @@ body.high-contrast {
 }
 body.high-contrast .card { background: #fff; color: #000; }
 body.high-contrast .menu a { color: #000; }
+*/
