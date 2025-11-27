@@ -1,55 +1,61 @@
 using Microsoft.EntityFrameworkCore;
 using PrimeGorilaAPI.Models;
+using PrimeGorilaAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ====================================
-// 🔹 LER CONFIGURAÇÕES EXTERNAS (secret.json) para poder ler a openAI mais segura
-// ====================================
-builder.Configuration
-    .AddJsonFile("secret.json", optional: true, reloadOnChange: true);
+// =====================
+// 🔹 CONFIG BANCO
+// =====================
+builder.Services.AddDbContext<ApplicationDbContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+);
 
-// ====================================
-// 🔹 CONFIGURAÇÃO DO BANCO DE DADOS
-// ====================================
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// ====================================
-// 🔹 CONFIGURAÇÃO DE CORS
-// ====================================
-builder.Services.AddCors(options =>
+// =====================
+// 🔹 CORS
+// =====================
+builder.Services.AddCors(opt =>
 {
-    options.AddPolicy("PermitirTudo", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    opt.AddPolicy("PermitirTudo", p =>
+        p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()
+    );
 });
 
-// ====================================
-// 🔹 CONFIGURAÇÃO DE CONTROLLERS
-// ====================================
+// =====================
+// 🔹 Swagger
+// =====================
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// =====================
+// 🔹 Controllers
+// =====================
 builder.Services.AddControllers();
 
-// ====================================
-// 🔹 CONSTRUIR A APLICAÇÃO
-// ====================================
+// =====================
+// 🔹 IA Service
+// =====================
+builder.Services.AddHttpClient<IAService>();
+builder.Services.AddScoped<IAService>();
+builder.Services.AddHttpClient();
+
+
+// =====================
+// 🔹 Build
+// =====================
 var app = builder.Build();
 
-// ====================================
-// 🔹 MIDDLEWARES
-// ====================================
+// =====================
+// 🔹 Middlewares
+// =====================
 app.UseCors("PermitirTudo");
-// app.UseHttpsRedirection(); // desativado para evitar erro de porta
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.MapControllers();
 
-app.UseDeveloperExceptionPage();
-
-
-// ====================================
-// 🔹 INICIAR SERVIDOR
-// ====================================
 app.Run();

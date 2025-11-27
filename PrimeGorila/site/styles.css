@@ -246,13 +246,15 @@ select:focus {
   padding: 20px;
 }
 
-.page-report canvas {
-  width: 100%;
-  max-width: 260px;  
-  height: 260px;
-  display: block;
-  margin: 20px auto 10px;
+#chartStatus {
+    width: 100% !important;
+    height: 300px !important;
+    max-height: 300px !important;
 }
+
+
+
+
 
 
 .footer{

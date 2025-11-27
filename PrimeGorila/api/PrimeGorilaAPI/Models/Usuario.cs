@@ -20,4 +20,3 @@ namespace PrimeGorilaAPI.Models
         public string tipo_usuario { get; set; } = "normal";
     }
 }
-// ...existing code...

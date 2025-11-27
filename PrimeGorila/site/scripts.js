@@ -487,122 +487,171 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // IA suggestion (mantive simples — seu endpoint /ia/suggest pode ser usado)
-  const descricao = document.getElementById('descricao');
-  const iaSuggestion = document.getElementById('iaSuggestion');
-  function debounce(fn, delay = 400) {
-    let t;
-    return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+  // IA suggestion (corrigido — agora chama /ia/sugerir)
+const descricao = document.getElementById('descricao');
+const iaSuggestion = document.getElementById('iaSuggestion');
+
+function debounce(fn, delay = 400) {
+  let t;
+  return function (...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+}
+
+async function pedirSugestao(text) {
+  if (!iaSuggestion) return;
+
+  if (!text?.trim()) {
+    iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.';
+    return;
   }
-  async function pedirSugestao(text) {
-    if (!iaSuggestion) return;
-    if (!text?.trim()) { iaSuggestion.textContent = 'Descreva o problema para receber sugestões automáticas.'; return; }
-    iaSuggestion.textContent = 'Buscando sugestão...';
-    try {
-      const resp = await fetch(`${API_URL}/ia/suggest`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
-      if (!resp.ok) { iaSuggestion.textContent = 'Sugestão local: ' + (text.includes('wifi') ? 'Reinicie o roteador.' : 'Encaminhado ao técnico.'); return; }
-      const data = await resp.json();
-      iaSuggestion.textContent = data.suggestion || 'Sugestão: Encaminhado ao técnico.';
-    } catch {
-      iaSuggestion.textContent = 'Sugestão local: Encaminhado ao técnico.';
+
+  iaSuggestion.textContent = 'Buscando sugestão...';
+
+  try {
+    const resp = await fetch(`${API_URL}/ia/sugerir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      iaSuggestion.textContent = 'Não foi possível gerar sugestão no momento.';
+      return;
     }
+
+    iaSuggestion.textContent = data.sugestao || 'Nenhuma sugestão disponível.';
+  } catch {
+    iaSuggestion.textContent = 'Erro ao conectar à IA.';
   }
+}
+
+if (descricao)
+  descricao.addEventListener('input', debounce(e =>
+    pedirSugestao(e.target.value), 450
+  ));
 
 
 // ================================
-// RELATÓRIO LOCAL (SEM API)
+// RELATÓRIO LOCAL (COM CONTROLE DE USUÁRIO TÉCNICO)
 // ================================
 
 let chartStatusInstance = null;
 
 function gerarGraficoLocal() {
-  const user = getUser();
-  const aviso = document.getElementById("relAviso");
-  const canvas = document.getElementById("chartStatus");
-  if (!canvas) return;
+    const user = getUser();
+    const aviso = document.getElementById("relAviso");
+    const canvas = document.getElementById("chartStatus");
 
-  // Somente técnicos
-  if (!user || user.tipo_usuario !== "técnico") {
-    aviso.style.display = "block";
-    canvas.style.display = "none";
-    return;
-  } else {
-    aviso.style.display = "none";
-    canvas.style.display = "block";
-  }
-
-  const tabela = document.querySelector("#tabelaChamadosTecnico tbody");
-  if (!tabela) return;
-
-  // Contagem de status (SEM "Em Andamento")
-  const counts = { Aberto: 0, Resolvido: 0 };
-  const rows = Array.from(tabela.querySelectorAll("tr"));
-
-  if (rows.length === 0) {
-    setTimeout(gerarGraficoLocal, 800); // tenta novamente se tabela ainda não carregou
-    return;
-  }
-
-  rows.forEach(row => {
-    const statusCell = row.children[3]; // 4ª coluna
-    if (!statusCell) return;
-    const status = (statusCell.textContent || "").trim().toLowerCase();
-    if (status.includes("aberto")) counts.Aberto++;
-    else if (status.includes("resol")) counts.Resolvido++;
-  });
-
-  // Se já existir gráfico, destrói e recria
-  if (chartStatusInstance) {
-    chartStatusInstance.destroy();
-  }
-
-  const ctx = canvas.getContext("2d");
-  chartStatusInstance = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: ["Aberto", "Resolvido"],
-      datasets: [{
-        data: [counts.Aberto, counts.Resolvido],
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.8)",  // Aberto
-          "rgba(75, 192, 192, 0.8)"   // Resolvido
-        ],
-        borderColor: "#111",
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: "#ddd" } },
-        title: {
-          display: true,
-          text: "Chamados Abertos x Resolvidos",
-          color: "#fff",
-          font: { size: 18 }
-        }
-      }
+    if (!canvas) {
+        console.error("ERRO: Canvas #chartStatus não encontrado!");
+        return;
     }
-  });
+
+    // Somente técnicos podem ver
+    if (!user || user.tipo_usuario !== "técnico") {
+        aviso.style.display = "block";
+        canvas.style.display = "none";
+        return;
+    } else {
+        aviso.style.display = "none";
+        canvas.style.display = "block";
+    }
+
+    // Aguarda o canvas ter tamanho antes de desenhar
+    if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+        console.warn("Canvas ainda sem tamanho, tentando novamente...");
+        setTimeout(gerarGraficoLocal, 100);
+        return;
+    }
+
+    const tabela = document.querySelector("#tabelaChamadosTecnico tbody");
+    if (!tabela) {
+        console.warn("Tabela não encontrada, tentando novamente...");
+        setTimeout(gerarGraficoLocal, 400);
+        return;
+    }
+
+    const rows = Array.from(tabela.querySelectorAll("tr"));
+    if (rows.length === 0) {
+        console.warn("Tabela vazia, tentando novamente...");
+        setTimeout(gerarGraficoLocal, 800);
+        return;
+    }
+
+    // Contagem dos status
+    const counts = { Aberto: 0, Resolvido: 0 };
+
+    rows.forEach(row => {
+        const statusCell = row.children[3];
+        if (!statusCell) return;
+
+        const status = (statusCell.textContent || "").trim().toLowerCase();
+
+        if (status.includes("aberto")) counts.Aberto++;
+        else if (status.includes("resol")) counts.Resolvido++;
+    });
+
+    // Destroi gráfico anterior antes de criar outro
+    if (chartStatusInstance) {
+        chartStatusInstance.destroy();
+    }
+
+    const ctx = canvas.getContext("2d");
+
+    chartStatusInstance = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Aberto", "Resolvido"],
+            datasets: [{
+                data: [counts.Aberto, counts.Resolvido],
+                backgroundColor: [
+                    "rgba(255, 99, 132, 0.8)",
+                    "rgba(75, 192, 192, 0.8)"
+                ],
+                borderColor: "#111",
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: "#ddd" } },
+                title: {
+                    display: true,
+                    text: "Chamados Abertos x Resolvidos",
+                    color: "#fff",
+                    font: { size: 18 }
+                }
+            }
+        }
+    });
+
+    console.log("Gráfico gerado com sucesso!");
 }
 
-// Executa ao entrar na aba de relatórios
+// ================================
+// EVENTOS
+// ================================
+
+// Executa ao entrar na aba de relatórios (#relatorios)
 window.addEventListener("hashchange", () => {
-  if (location.hash === "#relatorios") {
-    setTimeout(gerarGraficoLocal, 500);
-  }
+    if (location.hash === "#relatorios") {
+        setTimeout(gerarGraficoLocal, 500);
+    }
 });
 
-// Atualiza gráfico também após carregar chamados do técnico
+// Permite atualizar via outras funções
 window.atualizarRelatorioChamados = gerarGraficoLocal;
 
-if (typeof atualizarRelatorioChamados === "function") {
-  atualizarRelatorioChamados();
-}
+// Atualiza caso já tenha dados carregados
+setTimeout(() => {
+    if (typeof atualizarRelatorioChamados === "function") {
+        atualizarRelatorioChamados();
+    }
+}, 600);
+
 
 
   if (descricao) descricao.addEventListener('input', debounce(e => pedirSugestao(e.target.value), 450));
